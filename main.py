@@ -64,7 +64,7 @@ def get_random_domain(proxy_dict, current=None, total=None):
         
         valid_domains = [
             domain for domain in domains 
-            if domain.count('.') == 1 and domain.encode('utf-8')
+            if domain.encode('utf-8')
         ]
         
         if not valid_domains:
@@ -271,36 +271,40 @@ def get_referral_code():
         log('Please enter a valid referral code.', Fore.YELLOW)
 
 def process_single_referral(index, total_referrals, proxy_dict, target_address, ref_code, headers):
-    while True:
+    try:
         print(f"{Fore.CYAN}\nStarting new referral process\n{Style.RESET_ALL}")
 
         email = generate_email(proxy_dict, index, total_referrals)
         if not email:
-            log("Failed to generate email. Retrying...", Fore.RED, index, total_referrals)
-            continue
+            log("Failed to generate email.", Fore.RED, index, total_referrals)
+            return False
 
         password = generate_password()
         log(f"Generated account: {email}:{password}", Fore.CYAN, index, total_referrals)
 
         if not send_otp(email, proxy_dict, headers, index, total_referrals):
-            log("Failed to send OTP. Retrying...", Fore.RED, index, total_referrals)
-            continue
+            log("Failed to send OTP.", Fore.RED, index, total_referrals)
+            return False
 
         valid_code = check_inbox(email, proxy_dict, 9, index, total_referrals)
         if not valid_code:
-            log("Failed to get OTP code. Starting with new email...", Fore.RED, index, total_referrals)
-            continue
+            log("Failed to get OTP code.", Fore.RED, index, total_referrals)
+            return False
 
         address = verify_otp(email, valid_code, password, proxy_dict, ref_code, headers, index, total_referrals)
         if not address:
-            log("Failed to verify OTP. Starting with new email...", Fore.RED, index, total_referrals)
-            continue
+            log("Failed to verify OTP.", Fore.RED, index, total_referrals)
+            return False
 
         daily_claim(address, proxy_dict, headers, index, total_referrals)
         auto_send(email, target_address, password, proxy_dict, headers, index, total_referrals)
         
-        log(f"Referral #{index} success!", Fore.YELLOW, index, total_referrals)
+        log(f"Referral #{index} completed successfully!", Fore.GREEN, index, total_referrals)
         return True
+        
+    except Exception as e:
+        log(f"Error occurred: {str(e)}.", Fore.RED, index, total_referrals)
+        return False
 
 def main():
     print_banner()
@@ -324,15 +328,15 @@ def main():
         'User-Agent': random.choice(ANDROID_USER_AGENTS)
     }
     
+    successful_referrals = 0
     for index in range(1, total_referrals + 1):
         proxy = get_random_proxy(proxies)
         proxy_dict = {"http": proxy, "https": proxy} if proxy else None
         
-        while not process_single_referral(index, total_referrals, proxy_dict, target_address, ref_code, headers):
-            log(f"Retrying referral #{index}", Fore.YELLOW, index, total_referrals)
-            proxy = get_random_proxy(proxies)
-            proxy_dict = {"http": proxy, "https": proxy} if proxy else None
-
+        if process_single_referral(index, total_referrals, proxy_dict, target_address, ref_code, headers):
+            successful_referrals += 1
+    
+    log(f"\nCompleted {successful_referrals}/{total_referrals} successful referrals", Fore.CYAN)
 if __name__ == "__main__":
     try:
         main()
