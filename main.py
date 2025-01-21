@@ -173,7 +173,7 @@ def verify_otp(email, valid_code, password, proxy_dict, invite_code, headers, cu
         log(f"Success Register with referral code {invite_code}", Fore.GREEN, current, total)
 
         with open("accounts.txt", "a") as file:
-            file.write(f"ID: {result['result']['session_code']}\nEmail: {email}\nPassword: {password}\nAddress: {result['result']['address']}\nPrivate Key: {result['result']['master_key']}\n")
+            file.write(f"ID: {result['result']['session_code']}\nEmail: {email}\nPassword: {password}\nAddress: {result['result']['address']}\nPrivate Key: {result['result']['master_key']}\n\n")
 
         return result['result']['address']
 
@@ -258,7 +258,7 @@ def get_referral_count():
 
 def get_target_address():
     while True:
-        address = ask('Enter target address for auto-send: ').strip()
+        address = ask('Enter main account address for auto-send: ').strip()
         if address:
             return address
         log('Please enter a valid address.', Fore.YELLOW)
@@ -292,7 +292,7 @@ def process_single_referral(index, total_referrals, proxy_dict, target_address, 
         mail_client.create_inbox()
         valid_code = None
         
-        for _ in range(60):
+        for _ in range(30):
             inbox = mail_client.get_inbox()
             if inbox.get('messages'):
                 message = inbox['messages'][0]
@@ -302,7 +302,7 @@ def process_single_referral(index, total_referrals, proxy_dict, target_address, 
                 if valid_code:
                     log(f"Found OTP: {valid_code}", Fore.GREEN, index, total_referrals)
                     break
-            time.sleep(1)
+            time.sleep(2)
             mail_client.create_inbox()
 
         if not valid_code:
